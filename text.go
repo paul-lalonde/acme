@@ -119,8 +119,8 @@ func (t *Text) Delete(q0, q1 uint, tofile bool) {
 }
 
 func (t *Text) Constrain(q0, q1 uint, p0, p1 *uint) {
-	*p0 = minu(q0, t.file.b.nc)
-	*p1 = minu(q1, t.file.b.nc)
+	*p0 = minu(q0, t.file.b.nc())
+	*p1 = minu(q1, t.file.b.nc())
 }
 
 func (t *Text) ReadRune(q uint) rune {
