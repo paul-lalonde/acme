@@ -27,8 +27,7 @@ func region(a, b int) int {
 	return 1
 }
 
-type Mntdir string // TODO(flux): This will get implemented and conflict at some point :-)
-func warning(md *Mntdir, s string, args ...interface{}) {
+func warning(md *MntDir, s string, args ...interface{}) {
 	// TODO(flux): Port to actually output to the error window
 	_ = md
 	fmt.Printf(s, args...)
