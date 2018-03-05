@@ -16,6 +16,13 @@ func minu(a, b uint) uint {
 	}
 	return b
 }
+func max(a, b int) int {
+	if a > b {
+		return a
+	} 
+	return b
+}
+
 
 func region(a, b int) int {
 	if a < b {

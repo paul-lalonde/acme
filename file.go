@@ -13,16 +13,17 @@ type File struct {
 	unread    bool
 	editclean bool
 	seq       int
-	mod       int
+	mod       bool
 
 	curtext *Text
-	text    **Text
-	ntext   int
+	text    []*Text
 	dumpid  int
 }
 
 func (f *File) AddText(t *Text) *File {
-	return nil
+	f.text = append(f.text, t)
+	f.curtext = t
+	return f
 }
 
 func (f *File) DelText(t *Text) {
@@ -53,8 +54,51 @@ func (f *File) UnsetName(delta *Buffer) {
 
 }
 
-func (f *File) Load(p0 uint, fd int, nulls *int) uint {
-	return 0
+func NewFile(filename string) *File {
+	return &File{
+	b:        NewBuffer(),
+/*	delta     Buffer
+	epsilon   Buffer
+*/
+	elog: MakeElog(),
+	name:      []rune(filename),
+//	qidpath   uint64
+//	mtime     uint64
+//	dev       int
+	unread: true,
+	editclean: true,
+//	seq       int
+	mod:      false,
+
+	curtext: nil,
+	text: []*Text{},
+//	ntext   int
+//	dumpid  int
+	}
+}
+
+func NewTagFile() *File {
+
+	return &File{
+	b:        NewBuffer(),
+/*	delta     Buffer
+	epsilon   Buffer
+*/
+	elog: MakeElog(),
+	name:      []rune{},
+//	qidpath   uint64
+//	mtime     uint64
+//	dev       int
+	unread: true,
+	editclean: true,
+//	seq       int
+	mod:      false,
+
+//	curtext *Text
+//	text    **Text
+//	ntext   int
+//	dumpid  int
+	}
 }
 
 func (f *File) RedoSeq() uint {

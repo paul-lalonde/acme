@@ -1,10 +1,12 @@
 package main
 
 import (
-	"9fans.net/go/draw"
 	"image"
 	"sync"
 	"unicode/utf8"
+
+	"github.com/rjkroege/acme/frame"
+	"9fans.net/go/draw"
 )
 
 const (
@@ -47,6 +49,11 @@ const (
 	Collecting = 2
 
 	NCOL = 5
+
+	// Always apply display scalesize to these.
+	Border = 2
+	Scrollwid = 12
+	Scrollgap = 8
 )
 
 var (
@@ -56,12 +63,13 @@ var (
 
 	display     *draw.Display
 	screen      *draw.Image
-	font        *draw.Font
+	tagfont        *draw.Font
 	mouse       *draw.Mouse
 	mousectl    *draw.Mousectl
 	keyboardctl *draw.Keyboardctl
 
-	reffont   Reffont
+	reffont   *draw.Font
+	reffonts   [2]*draw.Font
 	modbutton *draw.Image
 	colbutton *draw.Image
 	button    *draw.Image
@@ -79,8 +87,8 @@ var (
 	typetext  *Text
 	barttext  *Text
 
-	bartflag          int
-	swapscrollbuttons int
+	bartflag          bool
+	swapscrollbuttons bool
 	activewin         *Window
 	activecol         *Column
 	snarfbuf          Buffer
@@ -88,9 +96,10 @@ var (
 	fsyspid           int
 	cputype           string
 	objtype           string
+	home 	string
 	acmeshell         string
-	tagcols           [NCOL]*draw.Image
-	textcols          [NCOL]*draw.Image
+	tagcolors           [frame.NumColours]*draw.Image
+	textcolors          [frame.NumColours]*draw.Image
 	wdir              string
 	editing           bool
 	erroutfd          int
@@ -168,11 +177,6 @@ type Xfid struct {
 	f       *Fid
 	buf     []byte
 	flushed bool
-}
-
-type Reffont struct {
-	ref Ref
-	f   *draw.Font
 }
 
 type RangeSet [NRange]Range
