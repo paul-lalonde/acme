@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"fmt"
 
 	"github.com/rjkroege/acme/frame"
 )
@@ -179,6 +180,7 @@ func (c *Column) Resize(r image.Rectangle) {
 		if i == len(c.w)-1 {
 			r1.Max.Y = r.Max.Y
 		} else {
+fmt.Println(c.r)
 			r1.Max.Y = r1.Min.Y + (win.r.Dx() + display.ScaleSize(Border))*r.Dy()/c.r.Dy()
 		}
 		r1.Max.Y = max(r1.Max.Y, r1.Min.Y + display.ScaleSize(Border) + tagfont.Height)
@@ -199,32 +201,33 @@ func (c *Column) Sort() {
 }
 
 func (c *Column) Grow(w *Window, but int) {
-//	var i, j, k, l, y1, y2, *nl, *ny, tot, nnl, onl, dnl, h int
-//	Window *v;
-//
-//	var winindex uint
-//
-//	for winindex := range c.w {
-//		if(&c.w[winindex] == w) {
-//			break
-//		}
-//	}
-//	if winindex = c.nw() {
-//		coerror("can't find window");
-//	}
-//
-// 	cr := c.r
-//	if but < 0 {	/* make sure window fills its own space properly */
-//		r: = w.r
-//		if i == c.nw()-1 || !c.safe {
-//			r.Max.Y = cr.Max.Y
-//		} else {
-//			r.Max.Y = c.w[winindex+1]->r.Min.Y - display.ScaleSize(Border)
-//		}
-//		w.Resize(r, false, true)
-//		return
-//	}
-//panic("unimplemented") XXXXXXXXXXXXXXXXXXXXXXXXx
+	var i int //, j, k, l, y1, y2,  tot, nnl, onl, dnl, h int
+	//var nl, ny *int
+	//var v *Window
+
+	var winindex uint
+
+	for winindex := range c.w {
+		if(c.w[winindex] == w) {
+			break
+		}
+	}
+	if winindex == c.nw() {
+		panic("can't find window") // TODO(flux): implement counterpart to the C version's error()
+	}
+
+ 	cr := c.r
+	if but < 0 {	/* make sure window fills its own space properly */
+		r := w.r
+		if i == int(c.nw()-1) || !c.safe {
+			r.Max.Y = cr.Max.Y
+		} else {
+			r.Max.Y = c.w[winindex+1].r.Min.Y - display.ScaleSize(Border)
+		}
+		w.Resize(r, false, true)
+		return
+	}
+panic("unimplemented")
 //	cr.min.y = c->w[0]->r.min.y;
 //	if(but == 3){	/* full size */
 //		if(i != 0){
