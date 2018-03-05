@@ -4,6 +4,9 @@ import (
 	"image"
 	"math"
 	"sync"
+
+	"github.com/rjkroege/acme/frame"
+	"9fans.net/go/draw"
 )
 
 type Window struct {
@@ -41,7 +44,7 @@ type Window struct {
 	putseq      int
 	nincl       int
 	incl        []string
-	reffont     *Reffont
+	reffont     *draw.Font
 	ctrllock    *sync.Mutex
 	ctlfid      uint
 	dumpstr     string
@@ -50,14 +53,19 @@ type Window struct {
 	utflastqid  int
 	utflastboff int
 	utflastq    int
-	tagsafe     int
+	tagsafe     bool
 	tagexpand   bool
 	taglines    int
 	tagtop      image.Rectangle
 	editoutlk   *sync.Mutex
 }
 
-func (w *Window) WinInit(clone *Window, r image.Rectangle) {
+func NewWindow() *Window { 
+	return &Window{
+	}
+}
+
+func (w *Window) Init(clone *Window, r image.Rectangle) {
 
 	//	var r1, br image.Rectangle
 	//	var f *File
@@ -65,8 +73,14 @@ func (w *Window) WinInit(clone *Window, r image.Rectangle) {
 	//	var rp []rune
 	//	var nc int
 
+	bodyFile := NewFile("")
+	w.body.Init(bodyFile, r, tagfont, textcolors)
+	tagFile := NewFile("")
+	w.tag.Init(tagFile, r, tagfont, textcolors)
+
 	w.tag.w = w
 	w.taglines = 1
+	w.tagsafe = true
 	w.tagexpand = true
 	w.body.w = w
 
@@ -82,7 +96,7 @@ func (w *Window) WinInit(clone *Window, r image.Rectangle) {
 	//	r1 = r
 
 	w.tagtop = r
-	w.tagtop.Max.Y = r.Min.Y + font.Height
+	w.tagtop.Max.Y = r.Min.Y + tagfont.Height
 }
 
 func (w *Window) DrawButton() {
@@ -98,11 +112,72 @@ func (w *Window) ToDel() {
 }
 
 func (w *Window) TagLines(r image.Rectangle) int {
-	return 0
+	return 1
 }
 
-func (w *Window) Resize(r image.Rectangle, safe, keepextra int) int {
-	return 0
+func (w *Window) Resize(r image.Rectangle, safe, keepextra bool) int {
+	// mouseintag := mouse.xy.In(w.tag.all)
+	// mouseinbody := mouse.xy.In(w.body.all) // TODO(flux): Mouse
+
+	w.tagtop = r
+	w.tagtop.Max.Y = r.Min.Y + tagfont.Height
+
+	r1 := r
+	r1.Max.Y = min(r.Max.Y, r1.Min.Y + w.taglines * tagfont.Height)
+	if !safe || !w.tagsafe || w.tag.all.Eq(r1) {
+		w.taglines = w.TagLines(r)
+		r1.Max.Y = min(r.Max.Y, r1.Min.Y + w.taglines * tagfont.Height)
+	}
+
+	y := r1.Max.Y;
+
+	// Resize/redraw tag TODO(flux)
+	/*
+	if(!safe || !w->tagsafe || !eqrect(w->tag.all, r1)){
+		textresize(&w->tag, r1, TRUE);
+		y = w->tag.fr.r.max.y;
+		windrawbutton(w);
+		w->tagsafe = TRUE;
+
+		// If mouse is in tag, pull up as tag closes. 
+		if(mouseintag && !ptinrect(mouse->xy, w->tag.all)){
+			p = mouse->xy;
+			p.y = w->tag.all.max.y-3;
+			moveto(mousectl, p);
+		}
+
+		// If mouse is in body, push down as tag expands. 
+		if(mouseinbody && ptinrect(mouse->xy, w->tag.all)){
+			p = mouse->xy;
+			p.y = w->tag.all.max.y+3;
+			moveto(mousectl, p);
+		}
+	}
+	*/
+	// Redraw body
+	r1 = r
+	r1.Min.Y = y
+	if !safe || !w.body.all.Eq(r1) {
+		oy := y
+		if y+1+w.body.fr.Font.DefaultHeight() < r.Max.Y { /* no room for one line */
+			r1.Min.Y = y
+			r1.Max.Y = y+1
+			display.ScreenImage.Draw(r1, tagcolors[frame.ColBord], nil, image.ZP)
+			y++
+			r1.Min.Y = min(y, r.Max.Y)
+			r1.Max.Y = r.Max.Y
+		} else {
+			r1.Min.Y = y
+			r1.Max.Y = y
+		}
+		y = w.body.Resize(r1, keepextra)
+		w.r = r
+		w.r.Max.Y = y
+		// w.body.Scrdraw()  // TODO(flux) scrollbars
+		w.body.all.Min.Y = oy
+	}
+	w.maxlines = min(w.body.fr.Nlines, max(w.maxlines, w.body.fr.MaxLines))
+	return w.r.Max.Y
 }
 
 func (w *Window) Lock1(owner int) {
@@ -137,7 +212,7 @@ func (w *Window) Undo(isundo bool) {
 
 }
 
-func (w *Window) SetName(name string, n int) {
+func (w *Window) SetName(name string) {
 
 }
 

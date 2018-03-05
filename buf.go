@@ -12,6 +12,7 @@ type Buffer struct {
 	buf      []rune
 }
 
+func NewBuffer() Buffer { return Buffer{buf: []rune{}} }
 func (b *Buffer) Insert(q0 uint, r []rune) {
 	if q0 > uint(len(b.buf)) {
 		panic("internal error: buffer.Insert: Out of range insertion")

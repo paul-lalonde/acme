@@ -4,6 +4,7 @@ import (
 	"image"
 	"math"
 
+	"github.com/rjkroege/acme/frame"
 	"9fans.net/go/draw"
 )
 
@@ -31,14 +32,22 @@ var (
 	}
 )
 
+type TextKind byte
+const (
+	Columntag = iota
+	Rowtag
+	Tag
+	Body
+)
+
 type Text struct {
 	file *File
-	//fr Frame
-	reffont *Reffont
+	fr 	*frame.Frame
+	font *draw.Font
 	org     uint
 	q0      uint
 	q1      uint
-	what    int
+	what    TextKind
 	tabstop int
 	w       *Window
 	scrollr image.Rectangle
@@ -57,28 +66,37 @@ type Text struct {
 	needundo    int
 }
 
-func NewText(f *File, r image.Rectangle, rf *Reffont, cols []*draw.Image) *Text {
-	t := new(Text)
+func (t *Text)Init(f *File, r image.Rectangle, rf *draw.Font, cols [frame.NumColours]*draw.Image) *Text {
+	if t == nil {
+		t = new(Text)
+	}
 	t.file = f
 	t.all = r
 	t.scrollr = r
-	t.scrollr.Max.X = r.Min.X + display.ScaleSize(12)
+	t.scrollr.Max.X = r.Min.X + display.ScaleSize(Scrollwid)
 	t.lastsr = nullrect
-	r.Min.X += display.ScaleSize(12) + display.ScaleSize(4)
+	r.Min.X += display.ScaleSize(Scrollwid) + display.ScaleSize(Scrollgap)
 	t.eq0 = math.MaxUint64
 	t.ncache = 0
-	t.reffont = rf
+	t.font = rf
 	t.tabstop = int(maxtab)
-	//copy(t.fr, cols)
-	t.Redraw(r, rf.f, screen, -1)
+	t.fr = frame.NewFrame( r, rf, display.ScreenImage, cols)
+	t.Redraw(r, rf, display.ScreenImage, -1)
 	return t
 }
 
 func (t *Text) Redraw(r image.Rectangle, f *draw.Font, b *draw.Image, odx int) {
-
+	t.fr.Init(r, f, b, t.fr.Cols)
+	rr := t.fr.Rect
+	rr.Min.X -= display.ScaleSize(Scrollwid) + display.ScaleSize(Scrollgap)
+//	if !t.fr.noredraw {
+		display.ScreenImage.Draw(rr, t.fr.Cols[frame.ColBack], nil, image.ZP)
+//	}
+	display.Flush()
+	// TODO(flux): Draw the text!
 }
 
-func (t *Text) Resize(r image.Rectangle, keepextra int) int {
+func (t *Text) Resize(r image.Rectangle, keepextra bool) int {
 	return 0
 }
 
@@ -90,7 +108,8 @@ func (t *Text) Columnate(dlp **Dirlist, ndl int) {
 
 }
 
-func (t *Text) Load(q0 uint, file string, setquid bool) int {
+func (t *Text) Load(q0 uint, filename string, setquid bool) int {
+	t.file = NewFile(filename)
 	return 0
 }
 
