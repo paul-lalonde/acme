@@ -2,7 +2,6 @@ package main
 
 import (
 	"image"
-	"fmt"
 
 	"github.com/rjkroege/acme/frame"
 )
@@ -29,7 +28,6 @@ func (c *Column)Init(r image.Rectangle) *Column {
 	}
 	c.w = []*Window{}
 	display.ScreenImage.Draw(r, display.White, nil, image.ZP)
-display.Flush()
 	c.r = r
 	c.tag.col = c
 	tagfile := NewFile("")
@@ -41,11 +39,9 @@ display.Flush()
 	r1.Min.Y = r1.Max.Y
 	r1.Max.Y += display.ScaleSize(Border)
 	display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
-display.Flush()
 	c.tag.Insert(0, Lheader, true)
 	c.tag.SetSelect(c.tag.file.b.nc(), c.tag.file.b.nc())
 	display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton.R.Min)
-display.Flush()
 	c.safe = true
 	return c
 }
@@ -120,17 +116,13 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 		// Resize & redraw v
 		r = v.r
 		r.Max.Y = ymax
-	fmt.Println("A", r)
 		display.ScreenImage.Draw(r, textcolors[frame.ColBack], nil, image.ZP)
-display.Flush()
 		r1 := r
 		y = min(y, ymax-(v.tag.fr.Font.DefaultHeight()*v.taglines+v.body.fr.Font.DefaultHeight()+display.ScaleSize(Border)+1))
 		r1.Max.Y = min(y, v.body.fr.Rect.Min.Y+v.body.fr.Nlines*v.body.fr.Font.DefaultHeight())
 		r1.Min.Y = v.Resize(r1, false, false)
 		r1.Max.Y = r1.Min.Y+display.ScaleSize(Border)
-	fmt.Println("B", r1)
 		display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
-display.Flush()
 		
 		/*
 		 * leave r with w's coordinates
@@ -140,9 +132,7 @@ display.Flush()
 	if w == nil {
 		w = NewWindow()
 		w.col = c
-	fmt.Println("C", r)
 		display.ScreenImage.Draw(r, textcolors[frame.ColBack], nil, image.ZP)
-display.Flush()
 		w.Init(clone, r)
 	} else {
 		w.col = c
@@ -182,27 +172,21 @@ func (c *Column) Resize(r image.Rectangle) {
 	c.tag.Resize(r1, true) // And draw the tag
 	// TODO(flux): Column button
 	display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton.R.Min)
-display.Flush()
 	r1.Min.Y = r1.Max.Y // Walk past the tag
 	r1.Max.Y += display.ScaleSize(Border)
-fmt.Println("D", r1)
 	display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
-display.Flush()
 	r1.Max.Y = r.Max.Y
 	for i, win := range c.w {
 		win.maxlines = 0
 		if i == len(c.w)-1 {
 			r1.Max.Y = r.Max.Y
 		} else {
-fmt.Println(c.r)
 			r1.Max.Y = r1.Min.Y + (win.r.Dx() + display.ScaleSize(Border))*r.Dy()/c.r.Dy()
 		}
 		r1.Max.Y = max(r1.Max.Y, r1.Min.Y + display.ScaleSize(Border) + tagfont.Height)
 		r2 := r1
 		r2.Max.Y = r2.Max.Y + display.ScaleSize(Border)
-fmt.Println("E", r2)
 		display.ScreenImage.Draw(r2, display.Black, nil, image.ZP)
-display.Flush()
 		r1.Min.Y = r2.Max.Y
 		r1.Min.Y = win.Resize(r1, false, i == len(c.w)-1)
 	}
@@ -250,9 +234,7 @@ func (c *Column) Grow(w *Window, but int) {
 			c.w[0] = w
 			c.w[windex] = v
 		}
-fmt.Println("F", cr)
 		display.ScreenImage.Draw(cr, textcolors[frame.ColBack], nil, image.ZP);
-display.Flush()
 		w.Resize(cr, false, true);
 		for i:=1; i<c.nw(); i++ {
 			c.w[i].body.fr.MaxLines = 0;
@@ -317,9 +299,7 @@ display.Flush()
 		}
 		r.Min.Y = v.Resize(r, c.safe, false)
 		r.Max.Y += display.ScaleSize(Border)
-fmt.Println("G", r)
 		display.ScreenImage.Draw(r, display.Black, nil, image.ZP)
-display.Flush()
 		y1 = r.Max.Y
 	}
 	/* scan to see new size of everyone below */
@@ -348,9 +328,7 @@ display.Flush()
 	if windex < c.nw()-1 {
 		r.Min.Y = r.Max.Y
 		r.Max.Y += display.ScaleSize(Border)
-fmt.Println("H", r)
 		display.ScreenImage.Draw(r, display.Black, nil, image.ZP)
-display.Flush()
 		for j:=windex+1; j<c.nw(); j++ {
 			ny[j] -= (y2-r.Max.Y)
 		}
@@ -369,9 +347,7 @@ display.Flush()
 		if j < c.nw()-1 {	/* no border on last window */
 			r.Min.Y = y1
 			r.Max.Y += display.ScaleSize(Border)
-fmt.Println("I", r)
 			display.ScreenImage.Draw(r, display.Black, nil, image.ZP)
-display.Flush()
 			y1 = r.Max.Y
 		}
 	}

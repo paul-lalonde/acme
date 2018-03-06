@@ -1,0 +1,10 @@
+{ 
+,x/->/c/./
+,x/min.x/c/Min.X/
+,x/min.y/c/Min.Y/
+,x/max.x/c/Max.X/
+,x/max.y/c/Max.Y/
+s/if\((.*)\)/if \1/g
+,x/error/c/panic/
+}
+

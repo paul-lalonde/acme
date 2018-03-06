@@ -6,7 +6,7 @@ type File struct {
 	epsilon   Buffer
 	elogbuf   *Buffer
 	elog      Elog
-	name      []rune
+	name      string //[]rune
 	qidpath   uint64
 	mtime     uint64
 	dev       int
@@ -61,7 +61,7 @@ func NewFile(filename string) *File {
 	epsilon   Buffer
 */
 	elog: MakeElog(),
-	name:      []rune(filename),
+	name:      filename,
 //	qidpath   uint64
 //	mtime     uint64
 //	dev       int
@@ -85,7 +85,7 @@ func NewTagFile() *File {
 	epsilon   Buffer
 */
 	elog: MakeElog(),
-	name:      []rune{},
+	name:      "",
 //	qidpath   uint64
 //	mtime     uint64
 //	dev       int

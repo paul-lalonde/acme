@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
-
 	"flag"
 	"log"
 	"image"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"9fans.net/go/draw"
 	"github.com/rjkroege/acme/frame"
@@ -189,7 +188,6 @@ func main() {
 		}
 		for i := 0; i < ncol; i++ {
 			row.Add(nil, -1)
-	display.Flush()
 		}
 		rightmostcol := row.col[row.ncol()-1]
 		if len(files) == 0 {
@@ -211,7 +209,6 @@ for {}
 }
 
 func readfile(c *Column, filename string) {
-fmt.Println("readfile", filename)
 	w := c.Add(nil, nil, -1)
 	abspath, _ := filepath.Abs(filename)
 	w.SetName(abspath)
@@ -292,4 +289,12 @@ func iconinit() {
 	but2col, _ = display.AllocImage(r, display.ScreenImage.Pix, true, 0xAA0000FF)
 	but3col, _ = display.AllocImage(r, display.ScreenImage.Pix, true, 0x006600FF)
 	
+}
+
+func ismtpt(filename string) bool {
+	if mtpt == "" {
+		return false
+	}
+
+	return strings.HasPrefix(filename, mtpt) && (mtpt[len(mtpt)-1] == '/' || filename[len(mtpt)] == '/' || len(filename) == len(mtpt))
 }
