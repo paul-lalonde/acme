@@ -20,7 +20,7 @@ type Window struct {
 	isscratch bool
 	filemenu  bool
 	dirty     bool
-	autoident bool
+	autoindent bool
 	showdel   bool
 
 	id    int
@@ -69,14 +69,12 @@ func (w *Window) Init(clone *Window, r image.Rectangle) {
 
 	//	var r1, br image.Rectangle
 	//	var f *File
-	//	var rf *Reffont
+	var rf *draw.Font
 	//	var rp []rune
 	//	var nc int
 
 	bodyFile := NewFile("")
 	w.body.Init(bodyFile, r, tagfont, textcolors)
-	tagFile := NewFile("")
-	w.tag.Init(tagFile, r, tagfont, textcolors)
 
 	w.tag.w = w
 	w.taglines = 1
@@ -84,22 +82,84 @@ func (w *Window) Init(clone *Window, r image.Rectangle) {
 	w.tagexpand = true
 	w.body.w = w
 
-	//	WinId++
-	//	w.id = WinId
+	WinId++
+	w.id = WinId
 
-	w.ref.Inc()
-	if globalincref {
-		w.ref.Inc()
-	}
 	w.ctlfid = math.MaxUint64
 	w.utflastqid = -1
-	//	r1 = r
+	r1 := r
 
 	w.tagtop = r
 	w.tagtop.Max.Y = r.Min.Y + tagfont.Height
+	r1.Max.Y = r1.Min.Y + w.taglines*tagfont.Height
+
+	f := &File{}
+	f.AddText(&w.tag)
+	w.tag.Init(f, r1, tagfont, tagcolors);
+	w.tag.what = Tag;
+
+	/* tag is a copy of the contents, not a tracked image */
+/* TODO(flux): Unimplemented Clone
+	if(clone){
+		w.tag.Delete(&, 0, w.tag.file.b.nc, true);
+		w.tag.Insert(0, clone.tag.file.b, true);
+		w.tag.file.Reset();
+		w.tag.Setselect(len(w.tag.file.b), len(w.tag.file.b))
+	}
+*/
+	r1 = r
+	r1.Min.Y += w.taglines*tagfont.Height + 1
+	if r1.Max.Y < r1.Min.Y {
+		r1.Max.Y = r1.Min.Y
+	}
+/* TODO(flux): Unimplemented Clone
+	f = nil;
+	if clone {
+		f = clone.body.file;
+		w.body.org = clone.body.org;
+		w.isscratch = clone.isscratch;
+		rf = rfget(false, false, false, clone.body.reffont.f.name);
+	} else {
+*/
+		rf = fontget(0, false, false, "");
+//	}
+	f = f.AddText(&w.body)
+	w.body.what = Body
+	w.body.Init(f, r1, rf, textcolors)
+	r1.Min.Y -= 1
+	r1.Max.Y = r1.Min.Y +1
+	display.ScreenImage.Draw(r1, tagcolors[frame.ColBord], nil, image.ZP)
+	// TODO(flux) w.body.Scrdraw()
+	w.r = r
+	var br image.Rectangle
+	br.Min = w.tag.scrollr.Min
+	br.Max.X = br.Min.X + button.R.Dx()
+	br.Max.Y = br.Min.Y + button.R.Dy()
+	display.ScreenImage.Draw(br, button, nil, button.R.Min)
+	w.filemenu = true
+	w.maxlines = w.body.fr.MaxLines
+	w.autoindent = globalautoindent
+/* TODO(flux): Unimplemented Clone
+	if clone != nil{
+		w.dirty = clone.dirty
+		w.autoindent = clone.autoindent
+		w.body.Setselect(clone.body.q0, clone.body.q1)
+		w.Settag(w)
+	}
+*/
 }
 
 func (w *Window) DrawButton() {
+
+	b := button;
+	if !w.isdir && !w.isscratch && w.body.file.mod { // TODO(flux) validate text cache stuff goes away
+		b = modbutton
+	}
+	var br image.Rectangle
+	br.Min = w.tag.scrollr.Min;
+	br.Max.X = br.Min.X + b.R.Dx()
+	br.Max.Y = br.Min.Y + b.R.Dy()
+	display.ScreenImage.Draw(br, b, nil, b.R.Min)
 
 }
 
@@ -132,34 +192,33 @@ func (w *Window) Resize(r image.Rectangle, safe, keepextra bool) int {
 	y := r1.Max.Y;
 
 	// Resize/redraw tag TODO(flux)
-	/*
-	if(!safe || !w->tagsafe || !eqrect(w->tag.all, r1)){
-		textresize(&w->tag, r1, TRUE);
-		y = w->tag.fr.r.max.y;
-		windrawbutton(w);
-		w->tagsafe = TRUE;
+	if !safe || !w.tagsafe || !w.tag.all.Eq(r1) {
+		w.tag.Resize(r1, true)
+		y = w.tag.fr.Rect.Max.Y
+		w.DrawButton()
+		w.tagsafe = true;
 
 		// If mouse is in tag, pull up as tag closes. 
-		if(mouseintag && !ptinrect(mouse->xy, w->tag.all)){
-			p = mouse->xy;
-			p.y = w->tag.all.max.y-3;
+/* TODO(flux): Mouse
+		if(mouseintag && !ptinrect(mouse.xy, w.tag.all)){
+			p = mouse.xy;
+			p.y = w.tag.all.Max.Y-3;
 			moveto(mousectl, p);
 		}
-
 		// If mouse is in body, push down as tag expands. 
-		if(mouseinbody && ptinrect(mouse->xy, w->tag.all)){
-			p = mouse->xy;
-			p.y = w->tag.all.max.y+3;
+		if(mouseinbody && ptinrect(mouse.xy, w.tag.all)){
+			p = mouse.xy;
+			p.y = w.tag.all.Max.Y+3;
 			moveto(mousectl, p);
 		}
+*/
 	}
-	*/
 	// Redraw body
 	r1 = r
 	r1.Min.Y = y
 	if !safe || !w.body.all.Eq(r1) {
 		oy := y
-		if y+1+w.body.fr.Font.DefaultHeight() < r.Max.Y { /* no room for one line */
+		if y+1+w.body.fr.Font.DefaultHeight() <= r.Max.Y { /* room for one line */
 			r1.Min.Y = y
 			r1.Max.Y = y+1
 			display.ScreenImage.Draw(r1, tagcolors[frame.ColBord], nil, image.ZP)

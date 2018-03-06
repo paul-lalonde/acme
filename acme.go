@@ -189,6 +189,7 @@ func main() {
 		}
 		for i := 0; i < ncol; i++ {
 			row.Add(nil, -1)
+	display.Flush()
 		}
 		rightmostcol := row.col[row.ncol()-1]
 		if len(files) == 0 {
@@ -199,7 +200,7 @@ func main() {
 				if filepath.Base(filename) == "guide" || uint(i)/WindowsPerCol >= row.ncol() {
 					readfile(rightmostcol, filename)
 				} else {
-					readfile(row.col[row.ncol()-1], filename)
+					readfile(row.col[i/WindowsPerCol], filename)
 				}
 			}
 		}
@@ -268,4 +269,27 @@ func iconinit() {
 		textcolors[frame.ColText] = display.Black
 		textcolors[frame.ColHText] = display.Black
  	}
+
+	// ...
+	r := image.Rect(0, 0, display.ScaleSize(Scrollwid+ButtonBorder), tagfont.Height+1)
+	button, _ = display.AllocImage(r, display.ScreenImage.Pix, false, draw.Notacolor)
+	button.Draw(r, tagcolors[frame.ColBack], nil, r.Min)
+	r.Max.X -= display.ScaleSize(ButtonBorder)
+	button.Border(r, display.ScaleSize(ButtonBorder), tagcolors[frame.ColBord], image.ZP)
+
+	r = button.R;
+	modbutton, _ = display.AllocImage(r, display.ScreenImage.Pix,  false, draw.Notacolor)
+	modbutton.Draw(r, tagcolors[frame.ColBack], nil, r.Min)
+	r.Max.X -= display.ScaleSize(ButtonBorder)
+	modbutton.Border(r, display.ScaleSize(ButtonBorder), tagcolors[frame.ColBord], image.ZP)
+	r = r.Inset(display.ScaleSize(ButtonBorder))
+	tmp, _ := display.AllocImage(image.Rect(0,0,1,1), display.ScreenImage.Pix, true, draw.Medblue);
+	modbutton.Draw(r, tmp, nil, image.ZP)
+
+	r = button.R
+	colbutton, _ = display.AllocImage(r, display.ScreenImage.Pix, false, draw.Purpleblue)
+
+	but2col, _ = display.AllocImage(r, display.ScreenImage.Pix, true, 0xAA0000FF)
+	but3col, _ = display.AllocImage(r, display.ScreenImage.Pix, true, 0x006600FF)
+	
 }

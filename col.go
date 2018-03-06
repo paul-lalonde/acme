@@ -8,15 +8,7 @@ import (
 )
 
 var (
-	Lheader = []string{
-		"New ",
-		"Cut ",
-		"Paste ",
-		"Snarf ",
-		"Sort ",
-		"Zerox ",
-		"Delcol ",
-	}
+	Lheader = []rune("New Cut Paste Snarf Sort Zerox Delcol")
 )
 
 type Column struct {
@@ -36,15 +28,25 @@ func (c *Column)Init(r image.Rectangle) *Column {
 		c = &Column{}
 	}
 	c.w = []*Window{}
-fmt.Println("init", r)
 	display.ScreenImage.Draw(r, display.White, nil, image.ZP)
+display.Flush()
 	c.r = r
-	tagfile := NewTagFile()
+	c.tag.col = c
+	tagfile := NewFile("")
 	tagr := r
 	tagr.Max.Y = tagr.Min.Y + tagfont.Height
-	c.tag.Init(tagfile, tagr, tagfont, tagcolors)
+	c.tag.Init(tagfile.AddText(&c.tag), tagr, tagfont, tagcolors)
 	c.tag.what = Columntag
-	c.tag.col = c
+	var r1 image.Rectangle
+	r1.Min.Y = r1.Max.Y
+	r1.Max.Y += display.ScaleSize(Border)
+	display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
+display.Flush()
+	c.tag.Insert(0, Lheader, true)
+	c.tag.SetSelect(c.tag.file.b.nc(), c.tag.file.b.nc())
+	display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton.R.Min)
+display.Flush()
+	c.safe = true
 	return c
 }
 
@@ -59,6 +61,7 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 	// Figure out new window placement
 	var v *Window
 	var ymax int
+
 	r := c.r
 	r.Min.Y = c.tag.fr.Rect.Max.Y + display.ScaleSize(Border)
 	if y < r.Min.Y && c.nw() > 0 { // Steal half the last window
@@ -67,7 +70,7 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 	}
 	// Which window will we land on?
 	var windex int
-	for windex := range c.w {
+	for windex = range c.w {
 		v = c.w[windex]
 		if y < v.r.Max.Y {
 			break
@@ -119,6 +122,7 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 		r.Max.Y = ymax
 	fmt.Println("A", r)
 		display.ScreenImage.Draw(r, textcolors[frame.ColBack], nil, image.ZP)
+display.Flush()
 		r1 := r
 		y = min(y, ymax-(v.tag.fr.Font.DefaultHeight()*v.taglines+v.body.fr.Font.DefaultHeight()+display.ScaleSize(Border)+1))
 		r1.Max.Y = min(y, v.body.fr.Rect.Min.Y+v.body.fr.Nlines*v.body.fr.Font.DefaultHeight())
@@ -126,6 +130,7 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 		r1.Max.Y = r1.Min.Y+display.ScaleSize(Border)
 	fmt.Println("B", r1)
 		display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
+display.Flush()
 		
 		/*
 		 * leave r with w's coordinates
@@ -137,6 +142,7 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 		w.col = c
 	fmt.Println("C", r)
 		display.ScreenImage.Draw(r, textcolors[frame.ColBack], nil, image.ZP)
+display.Flush()
 		w.Init(clone, r)
 	} else {
 		w.col = c
@@ -175,11 +181,13 @@ func (c *Column) Resize(r image.Rectangle) {
 	r1.Max.Y = r1.Min.Y + c.tag.fr.Font.DefaultHeight()
 	c.tag.Resize(r1, true) // And draw the tag
 	// TODO(flux): Column button
-	//display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton->r.Min)
+	display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton.R.Min)
+display.Flush()
 	r1.Min.Y = r1.Max.Y // Walk past the tag
 	r1.Max.Y += display.ScaleSize(Border)
 fmt.Println("D", r1)
 	display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
+display.Flush()
 	r1.Max.Y = r.Max.Y
 	for i, win := range c.w {
 		win.maxlines = 0
@@ -194,9 +202,11 @@ fmt.Println(c.r)
 		r2.Max.Y = r2.Max.Y + display.ScaleSize(Border)
 fmt.Println("E", r2)
 		display.ScreenImage.Draw(r2, display.Black, nil, image.ZP)
+display.Flush()
 		r1.Min.Y = r2.Max.Y
 		r1.Min.Y = win.Resize(r1, false, i == len(c.w)-1)
 	}
+	c.r = r
 }
 
 func cmp(a, b interface{}) int {
@@ -242,6 +252,7 @@ func (c *Column) Grow(w *Window, but int) {
 		}
 fmt.Println("F", cr)
 		display.ScreenImage.Draw(cr, textcolors[frame.ColBack], nil, image.ZP);
+display.Flush()
 		w.Resize(cr, false, true);
 		for i:=1; i<c.nw(); i++ {
 			c.w[i].body.fr.MaxLines = 0;
@@ -308,6 +319,7 @@ fmt.Println("F", cr)
 		r.Max.Y += display.ScaleSize(Border)
 fmt.Println("G", r)
 		display.ScreenImage.Draw(r, display.Black, nil, image.ZP)
+display.Flush()
 		y1 = r.Max.Y
 	}
 	/* scan to see new size of everyone below */
@@ -338,6 +350,7 @@ fmt.Println("G", r)
 		r.Max.Y += display.ScaleSize(Border)
 fmt.Println("H", r)
 		display.ScreenImage.Draw(r, display.Black, nil, image.ZP)
+display.Flush()
 		for j:=windex+1; j<c.nw(); j++ {
 			ny[j] -= (y2-r.Max.Y)
 		}
@@ -358,6 +371,7 @@ fmt.Println("H", r)
 			r.Max.Y += display.ScaleSize(Border)
 fmt.Println("I", r)
 			display.ScreenImage.Draw(r, display.Black, nil, image.ZP)
+display.Flush()
 			y1 = r.Max.Y
 		}
 	}

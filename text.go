@@ -97,7 +97,29 @@ func (t *Text) Redraw(r image.Rectangle, f *draw.Font, b *draw.Image, odx int) {
 }
 
 func (t *Text) Resize(r image.Rectangle, keepextra bool) int {
-	return 0
+	if r.Dy() <= 0 {
+		r.Max.Y = r.Min.Y
+	} else {
+		if(!keepextra) {
+			r.Max.Y -= r.Dy()%t.fr.Font.DefaultHeight();
+		}
+	}
+	odx := t.all.Dx()
+	t.all = r;
+	t.scrollr = r;
+	t.scrollr.Max.X = r.Min.X+Scrollwid
+	t.lastsr = image.ZR
+	r.Min.X += display.ScaleSize(Scrollwid+Scrollgap)
+	t.fr.Clear(false)
+	t.Redraw(r, t.fr.Font.Impl(), t.fr.Background, odx)
+	if keepextra && t.fr.Rect.Max.Y < t.all.Max.Y /* && !t.fr.noredraw */ {
+		/* draw background in bottom fringe of window */
+		r.Min.X -= display.ScaleSize(Scrollgap)
+		r.Min.Y = t.fr.Rect.Max.Y
+		r.Max.Y = t.all.Max.Y
+		display.ScreenImage.Draw(r, t.fr.Cols[frame.ColBack], nil, image.ZP)
+	}
+	return t.all.Max.Y
 }
 
 func (t *Text) Close() {

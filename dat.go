@@ -52,6 +52,7 @@ const (
 
 	// Always apply display scalesize to these.
 	Border = 2
+	ButtonBorder = 2
 	Scrollwid = 12
 	Scrollgap = 8
 )
@@ -123,6 +124,8 @@ var (
 	cwarn      chan uint
 
 	editoutlk *sync.Mutex
+
+	WinId int = 0
 )
 
 type Range struct {
