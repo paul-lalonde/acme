@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rjkroege/acme/frame"
+	"github.com/paul-lalonde/acme/frame"
 	"9fans.net/go/draw"
 )
 
@@ -96,7 +96,7 @@ func (t *Text) Redraw(r image.Rectangle, f *draw.Font, b *draw.Image, odx int) {
 	t.fr.Init(r, f, b, t.fr.Cols)
 	rr := t.fr.Rect
 	rr.Min.X -= display.ScaleSize(Scrollwid) + display.ScaleSize(Scrollgap)
-//	if !t.fr.noredraw {
+//	if !t.fr.NoRedraw {
 		display.ScreenImage.Draw(rr, t.fr.Cols[frame.ColBack], nil, image.ZP)
 //	}
 	// TODO(flux): Draw the text!
@@ -118,7 +118,7 @@ func (t *Text) Resize(r image.Rectangle, keepextra bool) int {
 	r.Min.X += display.ScaleSize(Scrollwid+Scrollgap)
 	t.fr.Clear(false)
 	t.Redraw(r, t.fr.Font.Impl(), t.fr.Background, odx)
-	if keepextra && t.fr.Rect.Max.Y < t.all.Max.Y /* && !t.fr.noredraw */ {
+	if keepextra && t.fr.Rect.Max.Y < t.all.Max.Y /* && !t.fr.NoRedraw */ {
 		/* draw background in bottom fringe of window */
 		r.Min.X -= display.ScaleSize(Scrollgap)
 		r.Min.Y = t.fr.Rect.Max.Y

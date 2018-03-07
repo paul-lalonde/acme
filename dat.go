@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/rjkroege/acme/frame"
+	"github.com/paul-lalonde/acme/frame"
 	"9fans.net/go/draw"
 )
 
@@ -218,7 +218,7 @@ func (r *Ref) Dec() {
 
 func Unimpl() {
 	fmt.Println("\n\nUnimplemented")
-	panic("unimplemented")
+	//panic("unimplemented")
 	debug.PrintStack()
 	
 }

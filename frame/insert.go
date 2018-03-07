@@ -22,9 +22,9 @@ func (f *Frame) bxscan(r []rune, ppt *image.Point) image.Point {
 	frame.Rect = f.Rect
 	frame.Background = f.Background
 	frame.Font = f.Font
-	frame.maxtab = f.maxtab
+	frame.MaxTab = f.MaxTab
 	frame.nbox = 0
-	frame.nchars = 0
+	frame.NChars = 0
 	frame.box = []*frbox{}
 
 	copy(frame.Cols[:], f.Cols[:])
@@ -35,7 +35,7 @@ func (f *Frame) bxscan(r []rune, ppt *image.Point) image.Point {
 	// log.Println("boxes are allocated?", "nalloc", f.nalloc, "box len", len(frame.box))
 
 	offs := 0
-	for nb := 0; offs < len(r) && nl <= f.maxlines; nb++ {
+	for nb := 0; offs < len(r) && nl <= f.MaxLines; nb++ {
 		if nb >= len(frame.box) {
 			// We have no boxes on start. So add on demand.
 			// TODO(rjk): consider removing delta, DELTA, nalloc if possible
@@ -61,7 +61,7 @@ func (f *Frame) bxscan(r []rune, ppt *image.Point) image.Point {
 				b.Minwid = byte(frame.Font.StringWidth(" "))
 			}
 			b.Nrune = -1
-			frame.nchars++
+			frame.NChars++
 			offs++
 		} else {
 			s := 0
@@ -95,7 +95,7 @@ func (f *Frame) bxscan(r []rune, ppt *image.Point) image.Point {
 			copy(b.Ptr, tmp[:s])
 			b.Wid = w
 			b.Nrune = nr
-			frame.nchars += nr
+			frame.NChars += nr
 		}
 		frame.nbox++
 	}
@@ -115,8 +115,8 @@ func (f *Frame) chop(pt image.Point, p,  bn int) {
 		p += nrune(b)
 		f.advance(&pt, b)
 	}
-	f.nchars = int(p)
-	f.nlines = f.maxlines
+	f.NChars = int(p)
+	f.NLines = f.MaxLines
 	if bn < f.nbox { // BUG
 		f.delbox(bn, f.nbox-1)
 	}
@@ -137,7 +137,7 @@ func (f *Frame) Insert(r []rune, p0 int) {
 	log.Printf("\n\n-----\nframe.Insert: %s", string(r))
 //	f.Logboxes("at very start of insert")
 
-	if p0 > f.nchars || len(r) == 0 || f.Background == nil {
+	if p0 > f.NChars || len(r) == 0 || f.Background == nil {
 		return
 	}
 
@@ -170,7 +170,7 @@ func (f *Frame) Insert(r []rune, p0 int) {
 		f.cklinewrap(&pt0, f.box[n0])
 		f.cklinewrap0(&ppt1, f.box[n0])
 	}
-	f.modified = true
+	f.Modified = true
 	/*
 	 * ppt0 and ppt1 are start and end of insertion as they will appear when
 	 * insertion is complete. pt0 is current location of insertion position
@@ -223,7 +223,7 @@ func (f *Frame) Insert(r []rune, p0 int) {
 		panic("frame.Insert pt1 too far")
 	}
 	if pt1.Y == f.Rect.Max.Y && n0 < f.nbox {
-		f.nchars -= f.strlen(n0)
+		f.NChars -= f.strlen(n0)
 		f.delbox(n0, f.nbox-1)
 	}
 	if n0 == f.nbox {
@@ -231,13 +231,13 @@ func (f *Frame) Insert(r []rune, p0 int) {
 		if pt1.X > f.Rect.Min.X {
 			div++
 		}
-		f.nlines = (pt1.Y - f.Rect.Min.Y) / div
+		f.NLines = (pt1.Y - f.Rect.Min.Y) / div
 	} else if pt1.Y != pt0.Y {
 		y := f.Rect.Max.Y
 		q0 := pt0.Y + f.Font.DefaultHeight()
 		q1 := pt1.Y + f.Font.DefaultHeight()
-		f.nlines += (q1 - q0) / f.Font.DefaultHeight()
-		if f.nlines > f.maxlines {
+		f.NLines += (q1 - q0) / f.Font.DefaultHeight()
+		if f.NLines > f.MaxLines {
 			f.chop(ppt1, p0, nn0)
 		}
 		if pt1.Y < y {
@@ -360,18 +360,18 @@ func (f *Frame) Insert(r []rune, p0 int) {
 	}
 	f.clean(ppt0, nn0, n0 + 1)
 //	f.Logboxes("after clean")
-	f.nchars += frame.nchars
+	f.NChars += frame.NChars
 	if f.p0 >= p0 {
-		f.p0 += frame.nchars
+		f.p0 += frame.NChars
 	}
-	if f.p0 >= f.nchars {
-		f.p0 = f.nchars
+	if f.p0 >= f.NChars {
+		f.p0 = f.NChars
 	}
 	if f.p1 >= p0 {
-		f.p1 += frame.nchars
+		f.p1 += frame.NChars
 	}
-	if f.p1 >= f.nchars {
-		f.p1 += f.nchars
+	if f.p1 >= f.NChars {
+		f.p1 += f.NChars
 	}
 	if f.p0 == f.p1 {
 		f.Tick(f.Ptofchar(f.p0), true)

@@ -5,7 +5,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/rjkroege/acme/frame"
+	"github.com/paul-lalonde/acme/frame"
 	"9fans.net/go/draw"
 )
 
@@ -235,7 +235,7 @@ func (w *Window) Resize(r image.Rectangle, safe, keepextra bool) int {
 		// w.body.Scrdraw()  // TODO(flux) scrollbars
 		w.body.all.Min.Y = oy
 	}
-	w.maxlines = min(w.body.fr.Nlines, max(w.maxlines, w.body.fr.MaxLines))
+	w.maxlines = min(w.body.fr.NLines, max(w.maxlines, w.body.fr.MaxLines))
 	return w.r.Max.Y
 }
 

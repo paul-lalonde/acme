@@ -3,7 +3,7 @@ package main
 import (
 	"image"
 
-	"github.com/rjkroege/acme/frame"
+	"github.com/paul-lalonde/acme/frame"
 )
 
 var (
@@ -119,7 +119,7 @@ func (c *Column) Add(w, clone *Window, y int) *Window {
 		display.ScreenImage.Draw(r, textcolors[frame.ColBack], nil, image.ZP)
 		r1 := r
 		y = min(y, ymax-(v.tag.fr.Font.DefaultHeight()*v.taglines+v.body.fr.Font.DefaultHeight()+display.ScaleSize(Border)+1))
-		r1.Max.Y = min(y, v.body.fr.Rect.Min.Y+v.body.fr.Nlines*v.body.fr.Font.DefaultHeight())
+		r1.Max.Y = min(y, v.body.fr.Rect.Min.Y+v.body.fr.NLines*v.body.fr.Font.DefaultHeight())
 		r1.Min.Y = v.Resize(r1, false, false)
 		r1.Max.Y = r1.Min.Y+display.ScaleSize(Border)
 		display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
