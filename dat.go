@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"unicode/utf8"
 
@@ -217,8 +218,11 @@ func (r *Ref) Dec() {
 }
 
 func Unimpl() {
-	fmt.Println("\n\nUnimplemented")
-	//panic("unimplemented")
-	debug.PrintStack()
-	
+	stack := strings.Split(string(debug.Stack()), "\n")
+	for i, l := range stack {
+		if l == "main.Unimpl()" {
+			fmt.Printf("Unimplemented: %v: %v\n", stack[i+2], strings.TrimLeft(stack[i+3]," \t"))
+			break
+		}
+	}
 }
