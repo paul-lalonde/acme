@@ -31,17 +31,17 @@ func (c *Column)Init(r image.Rectangle) *Column {
 	c.r = r
 	c.tag.col = c
 	tagfile := NewFile("")
-	tagr := r
-	tagr.Max.Y = tagr.Min.Y + tagfont.Height
-	c.tag.Init(tagfile.AddText(&c.tag), tagr, tagfont, tagcolors)
+	r1 := r
+	r1.Max.Y = r1.Min.Y + tagfont.Height
+	c.tag.Init(tagfile.AddText(&c.tag), r1, tagfont, tagcolors)
 	c.tag.what = Columntag
-	var r1 image.Rectangle
 	r1.Min.Y = r1.Max.Y
 	r1.Max.Y += display.ScaleSize(Border)
 	display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
 	c.tag.Insert(0, Lheader, true)
 	c.tag.SetSelect(c.tag.file.b.nc(), c.tag.file.b.nc())
 	display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton.R.Min)
+display.Flush()
 	c.safe = true
 	return c
 }
@@ -170,7 +170,6 @@ func (c *Column) Resize(r image.Rectangle) {
 	r1 := r
 	r1.Max.Y = r1.Min.Y + c.tag.fr.Font.DefaultHeight()
 	c.tag.Resize(r1, true) // And draw the tag
-	// TODO(flux): Column button
 	display.ScreenImage.Draw(c.tag.scrollr, colbutton, nil, colbutton.R.Min)
 	r1.Min.Y = r1.Max.Y // Walk past the tag
 	r1.Max.Y += display.ScaleSize(Border)

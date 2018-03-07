@@ -69,8 +69,8 @@ type Text struct {
 	ncache      int
 	ncachealloc int
 	cache       []rune
-	nofill      int
-	needundo    int
+	nofill      bool
+	needundo    bool
 }
 
 func (t *Text)Init(f *File, r image.Rectangle, rf *draw.Font, cols [frame.NumColours]*draw.Image) *Text {
@@ -94,20 +94,39 @@ func (t *Text)Init(f *File, r image.Rectangle, rf *draw.Font, cols [frame.NumCol
 
 func (t *Text) Redraw(r image.Rectangle, f *draw.Font, b *draw.Image, odx int) {
 	t.fr.Init(r, f, b, t.fr.Cols)
-	rr := t.fr.Rect
-	rr.Min.X -= display.ScaleSize(Scrollwid) + display.ScaleSize(Scrollgap)
-//	if !t.fr.NoRedraw {
-		display.ScreenImage.Draw(rr, t.fr.Cols[frame.ColBack], nil, image.ZP)
-//	}
-	// TODO(flux): Draw the text!
+	rr := t.fr.Rect;
+	rr.Min.X -= display.ScaleSize(Scrollwid+Scrollgap)	/* back fill to scroll bar */
+	if !t.fr.NoRedraw {
+		t.fr.Background.Draw(rr, t.fr.Cols[frame.ColBack], nil, image.ZP)
+	}
+	/* use no wider than 3-space tabs in a directory */
+	maxt := int(maxtab)
+	if t.what == Body {
+		if(t.w.isdir) {
+			maxt = min(TABDIR, int(maxtab))
+		} else {
+			maxt = t.tabstop
+		}
+	}
+	t.fr.MaxTab = maxt*f.StringWidth("0")
+	if t.what==Body && t.w.isdir && odx!=t.all.Dx() {
+		if t.fr.MaxLines > 0 {
+			t.Reset()
+			t.Columnate(t.w.dirnames,  t.w.widths)
+			t.Show(0, 0, false)
+		}
+	}else{
+		t.Fill()
+		t.SetSelect(t.q0, t.q1)
+	}
 }
 
 func (t *Text) Resize(r image.Rectangle, keepextra bool) int {
 	if r.Dy() <= 0 {
 		r.Max.Y = r.Min.Y
 	} else {
-		if(!keepextra) {
-			r.Max.Y -= r.Dy()%t.fr.Font.DefaultHeight();
+		if !keepextra {
+			r.Max.Y -= r.Dy()%t.fr.Font.DefaultHeight()
 		}
 	}
 	odx := t.all.Dx()
@@ -259,6 +278,8 @@ func (t *Text) Load(q0 uint, filename string, setqid bool) (nread uint, err erro
 			widths[i] = t.fr.Font.StringWidth(s)
 		}
 		t.Columnate(dirNames, widths)
+		t.w.dirnames = dirNames
+		t.w.widths = widths
 		q1 = t.file.b.nc()
 	}else{ 
 		t.w.isdir = false
@@ -374,9 +395,48 @@ Unimpl()
 
 }
 
-func (t *Text) Fill() {
+func runesplitN(buf []rune, sep rune, nl int) [][]rune {
+	linestart := 0
+	lines := [][]rune{}
+	for i, r := range buf {
+		if r == sep {
+			lines = append(lines, buf[linestart:i])
+			linestart = i+1
+		}
+		if len(lines) >= nl {
+			break
+		}
+	}
+	if linestart != len(buf) {
+		lines = append(lines, buf[linestart:])	// trailing chunk
+	}
+	return lines
+}
 
-Unimpl()
+func (t *Text)typecommit(){
+	if t.w != nil {
+		t.w.Commit(t)
+	} else {
+		t.Commit(true)
+	}
+}
+
+func (t *Text) Fill() {
+	if t.fr.LastLineFull != 0 || t.nofill {
+		return
+	}
+	if(t.ncache > 0) {
+		t.typecommit()
+	}
+	
+	nl := t.fr.MaxLines-t.fr.NLines;
+	lines := runesplitN(t.file.b.buf[t.org+uint(t.fr.NChars):], rune('\n'), nl)
+	for _, s := range lines {
+		t.fr.Insert(s, t.fr.NChars);
+		if t.fr.LastLineFull != 0 {
+			break
+		}
+	}
 }
 
 func (t *Text) Delete(q0, q1 uint, tofile bool) {
@@ -415,8 +475,17 @@ Unimpl()
 }
 
 func (t *Text) Commit(tofile bool) {
-Unimpl()
-
+	if(t.ncache == 0) {
+		return
+	}
+	if tofile {
+		t.file.Insert(t.cq0, t.cache)
+	}
+	if t.what == Body {
+		t.w.dirty = true
+		t.w.utflastqid = -1
+	}
+	t.ncache = 0
 }
 
 func (t *Text) FrameScroll(dl int) {

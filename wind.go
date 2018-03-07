@@ -39,8 +39,8 @@ type Window struct {
 	nevents     int
 	owner       int
 	maxlines    int
-	dlp         **Dirlist
-	ndl         int
+	dirnames []string
+	widths []int
 	putseq      int
 	nincl       int
 	incl        []string
