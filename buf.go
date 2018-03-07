@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/sha1"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 
@@ -28,7 +30,7 @@ func (b *Buffer) Delete(q0, q1 uint) {
 	b.buf = b.buf[:uint(len(b.buf))-(q1-q0)] // Reslice to length
 }
 
-func (b *Buffer) Load(q0 uint, fd *os.File) int {
+func (b *Buffer) Load(q0 uint, fd *os.File) (n uint, h [sha1.Size]byte, hasNulls bool, err error) {
 	// TODO(flux): Innefficient to load the file, then copy into the slice,
 	// but I need the UTF-8 interpretation.  I could fix this by using a
 	// UTF-8 -> []rune reader on top of the os.File instead.
@@ -38,9 +40,11 @@ func (b *Buffer) Load(q0 uint, fd *os.File) int {
 		warning(nil, "read error in Buffer.Load")
 	}
 	s := string(d)
+	s = strings.Replace(s, "\000", "", -1)
+	hasNulls = len(s) != len(d)
 	runes := []rune(s)
 	b.Insert(q0, runes)
-	return len(runes)
+	return uint(len(runes)), sha1.Sum(d), hasNulls, err
 }
 
 func (b *Buffer) Read(q0, n uint) (r []rune) {

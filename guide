@@ -1,10 +1,7 @@
-{ 
-,x/->/c/./
-,x/min.x/c/Min.X/
-,x/min.y/c/Min.Y/
-,x/max.x/c/Max.X/
-,x/max.y/c/Max.Y/
-s/if\((.*)\)/if \1/g
-,x/error/c/panic/
+{ x/->/c/./
+x/TRUE/c/true/
+x/FALSE/c/false/
+s/for\((.*)\)/for \1 /g
+x/if/+-s/if\((.*)\)/if \1 /g
 }
 

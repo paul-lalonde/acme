@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"image"
+	"runtime/debug"
 	"sync"
 	"unicode/utf8"
 
@@ -36,6 +38,7 @@ const (
 	//	Infinity  = 0x7FFFFFFF
   
 	//	STACK = 65536
+	EVENTSIZE = 256
 
 	Empty    = 0
 	Null     = '-'
@@ -211,4 +214,11 @@ func (r *Ref) Inc() {
 
 func (r *Ref) Dec() {
 	*r--
+}
+
+func Unimpl() {
+	fmt.Println("\n\nUnimplemented")
+	panic("unimplemented")
+	debug.PrintStack()
+	
 }

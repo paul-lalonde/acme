@@ -1,9 +1,13 @@
 package main
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"image"
 	"math"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/rjkroege/acme/frame"
 	"9fans.net/go/draw"
@@ -41,11 +45,13 @@ const (
 	Body
 )
 
+// Text is a view onto a buffer, managing a frame.
+// Files have possible multiple texts corresponding to clones.
 type Text struct {
 	file *File
 	fr 	*frame.Frame
 	font *draw.Font
-	org     uint
+	org     uint		// Origin of the frame withing the buffer
 	q0      uint
 	q1      uint
 	what    TextKind
@@ -123,43 +129,103 @@ func (t *Text) Resize(r image.Rectangle, keepextra bool) int {
 }
 
 func (t *Text) Close() {
-
+Unimpl()
 }
 
-func (t *Text) Columnate(dlp **Dirlist, ndl int) {
+func (t *Text) Columnate(names []string, widths []int) {
 
+	var colw, mint, maxt, ncol, nrow int
+	q1 := uint(0)
+	Lnl := []rune("\n")
+	Ltab := []rune("\t")
+
+	if len(t.file.text) > 1 {
+		return
+	}
+	mint = t.fr.Font.StringWidth("0")
+	/* go for narrower tabs if set more than 3 wide */
+	t.fr.MaxTab = min(int(maxtab), TABDIR)*mint
+	maxt = t.fr.MaxTab
+	for _, w := range widths {
+		if maxt-w%maxt < mint || w%maxt==0 {
+			w += mint
+		}
+		if w % maxt != 0 {
+			w += maxt-(w%maxt)
+		}
+		if w > colw {
+			colw = w
+		}
+	}
+	if colw == 0 {
+		ncol = 1
+	} else {
+		ncol = max(1, t.fr.Rect.Dx()/colw)
+	}
+	nrow = (len(names)+ncol-1)/ncol
+
+	q1 = 0
+	for i:=0; i<nrow; i++ {
+		for j:=i; j<len(names); j+=nrow {
+			dl := names[j]
+			t.file.Insert(q1, []rune(dl))
+			q1 += uint(len(dl))
+			if j+nrow >= len(names) {
+				break
+			}
+			w := widths[j];
+			if maxt-w%maxt < mint {
+				t.file.Insert(q1, Ltab)
+				q1++
+				w += mint
+			}
+			for {
+				t.file.Insert(q1, Ltab)
+				q1++
+				w += maxt-(w%maxt)
+				if w < colw {
+					break
+				}
+			}
+		}
+		t.file.Insert(q1, Lnl)
+		q1++
+	}
 }
 
-// TODO(flux): turn return int into error check.
-func (t *Text) Load(q0 uint, filename string, setquid bool) int {
+func (t *Text) Load(q0 uint, filename string, setqid bool) (nread uint, err error) {
 	if t.ncache!=0 || t.file.b.nc() > 0 || t.w==nil || t!=&t.w.body {
 		panic("text.load")
 	}
-	if t.w.isdir && t.file.nname==0{
+	if t.w.isdir && t.file.name==""{
 		warning(nil, "empty directory name")
-		return -1
+		return 0, fmt.Errorf("empty directory name")
 	}
-	if ismtpt(file){
-		warning(nil, "will not open self mount point %s\n", file)
-		return -1
+	if ismtpt(filename){
+		warning(nil, "will not open self mount point %s\n", filename)
+		return 0, fmt.Errorf("will not open self mount point %s\n", filename)
 	}
-	fd, err := os.Open(file);
+	fd, err := os.Open(filename);
 	if err != nil{
-		warning(nil, "can't open %s: %v\n", file, err)
-		return -1
+		warning(nil, "can't open %s: %v\n", filename, err)
+		return 0, fmt.Errorf("can't open %s: %v\n", filename, err)
 	}
-	d, err = fd.Stat()
+	defer fd.Close()
+	d, err := fd.Stat()
 	if err != nil{
-		warning(nil, "can't fstat %s: %r\n", file, err)
-		goto Rescue
+		warning(nil, "can't fstat %s: %r\n", filename, err)
+		return 0, fmt.Errorf("can't fstat %s: %r\n", filename, err)
 	}
-	nulls = false;
-	h = nil;
+
+	var count uint
+	q1 := uint(0)
+	hasNulls := false
+	var sha1 [sha1.Size]byte
 	if d.IsDir() {
 		/* this is checked in get() but it's possible the file changed underfoot */
 		if len(t.file.text) > 1{
-			warning(nil, "%s is a directory; can't read with multiple windows on it\n", file)
-			goto Rescue
+			warning(nil, "%s is a directory; can't read with multiple windows on it\n", filename)
+			return 0, fmt.Errorf("%s is a directory; can't read with multiple windows on it\n", filename)
 		}
 		t.w.isdir = true;
 		t.w.filemenu = false;
@@ -170,14 +236,13 @@ func (t *Text) Load(q0 uint, filename string, setquid bool) int {
 		}
 		dirNames, err := fd.Readdirnames(0)
 		if err != nil {
-			warning(nil, "failed to Readdirnames: %s\n", file)
-			goto Rescue
+			warning(nil, "failed to Readdirnames: %s\n", filename)
+			return 0, fmt.Errorf("failed to Readdirnames: %s\n", filename)
 		}
 		for i, dn := range dirNames {
-			f. err := os.Open(dn)
+			f, err := os.Open(dn)
 			if err != nil{
 				warning(nil, "can't open %s: %v\n", dn, err)
-				return -1
 			}
 			s, err  := f.Stat()
 			if err != nil{
@@ -195,81 +260,127 @@ func (t *Text) Load(q0 uint, filename string, setquid bool) int {
 		}
 		t.Columnate(dirNames, widths)
 		q1 = t.file.b.nc()
-	}else{ //////////HERE
+	}else{ 
 		t.w.isdir = false
 		t.w.filemenu = true
-		if q0 == 0 {
-			h = sha1(nil, 0, nil, nil)
+		count, sha1, hasNulls, err = t.file.Load(q0, fd)
+		if err != nil {
+			warning(nil, "Error reading file %s: %v", filename, err)
+			return 0, fmt.Errorf("Error reading file %s: %v", filename, err)
 		}
-		q1 = q0 + fileload(t.file, q0, fd, &nulls, h);
+		q1 = q0 + count
 	}
 	if setqid{
-		if h != nil {
-			sha1(nil, 0, t.file.sha1, h);
-			h = nil;
-		} else {
-			memset(t.file.sha1, 0, sizeof t.file.sha1);
+		if q0 == 0 {
+			t.file.sha1 = sha1
 		}
-		t.file.dev = d.dev;
-		t.file.mtime = d.mtime;
-		t.file.qidpath = d.qid.path;
+		//t.file.dev = d.dev;
+		t.file.mtime = d.ModTime().UnixNano()
+		t.file.qidpath = d.Name() // TODO(flux): Gross hack to use filename as unique ID of file.
 	}
-	close(fd);
-	rp = fbufalloc();
-	for(q=q0; q<q1; q+=n){
-		n = q1-q;
-		if n > RBUFSIZE
-			n = RBUFSIZE;
-		bufread(&t.file.b, q, rp, n);
-		if q < t.org
-			t.org += n;
-		else if q <= t.org+t.fr.nchars
-			frinsert(&t.fr, rp, rp+n, q-t.org);
-		if t.fr.lastlinefull
-			break;
+	fd.Close()
+	n := q1-q0
+	if q0 < t.org { // TODO(flux) I don't understand this test, moving origin of frame past the text.
+		t.org += n
+	} else {
+		if q0 <= t.org+uint(t.fr.NChars) { // Text is within the window, put it there.
+			t.fr.Insert(t.file.b.buf[q0:q0+n], int(q0-t.org))
+		}
 	}
-	fbuffree(rp);
-	for(i=0; i<t.file.ntext; i++){
-		u = t.file.text[i];
-		if u != t{
-			if u.org > u.file.b.nc)	/* will be 0 because of reset(, but safety first */
+	// For each clone, redraw
+	for _, u := range t.file.text {
+		if u != t { // Skip the one we just redrew
+			if u.org > u.file.b.nc() {	/* will be 0 because of reset(), but safety first */
 				u.org = 0;
-			textresize(u, u.all, true);
-			textbacknl(u, u.org, 0);	/* go to beginning of line */
+			}
+			u.Resize(u.all, true)
+			u.Backnl(u.org, 0)	/* go to beginning of line */
 		}
-		textsetselect(u, q0, q0);
+		u.SetSelect(q0, q0);
 	}
-	if nulls
-		warning(nil, "%s: NUL bytes elided\n", file);
-	free(d);
-	return q1-q0;
+	if hasNulls {
+		warning(nil, "%s: NUL bytes elided\n", filename);
+	}
+	return q1-q0, nil
 
-    Rescue:
-	close(fd);
-	return -1;
 }
 
 func (t *Text) Backnl(p, n uint) uint {
+Unimpl()
 	return 0
 }
 
 func (t *Text) BsInsert(q0 uint, r []rune, n uint, tofile bool, nrp *int) uint {
+Unimpl()
 	return 0
 }
 
 func (t *Text) Insert(q0 uint, r []rune, tofile bool) {
-
+	if tofile && t.ncache != 0 {
+		panic("text.insert")
+	}
+	if len(r) == 0 {
+		return
+	}
+	if tofile  {
+		t.file.Insert(q0, r);
+		if t.what == Body  {
+			t.w.dirty = true
+			t.w.utflastqid = -1
+		}
+		if len(t.file.text) > 1 {
+			for _, u := range t.file.text {
+				if u != t  {
+					u.w.dirty = true	/* always a body */
+					u.Insert(q0, r, false)
+					u.SetSelect(u.q0, u.q1)
+					u.ScrDraw()
+				}
+			}
+		}		
+	}
+	n := uint(len(r))
+	if q0 < t.iq1 {
+		t.iq1 += n
+	}
+	if q0 < t.q1 {
+		t.q1 += n
+	}
+	if q0 < t.q0 {
+		t.q0 += n
+	}
+	if q0 < t.org {
+		t.org += n
+	} else {
+		 if q0 <= t.org+uint(t.fr.NChars)  {
+			t.fr.Insert(r[:n], int(q0-t.org))
+		}
+	}
+	if t.w != nil {
+		c := 'i'
+		if t.what == Body {
+			c = 'I'
+		}
+		if n <= EVENTSIZE  {
+			t.w.Event("%c%d %d 0 %d %.*S\n", c, q0, q0+n, n, n, r)
+		} else {
+			t.w.Event("%c%d %d 0 0 \n", c, q0, q0+n, n)
+		}
+	}
 }
 
 func (t *Text) TypeCommit() {
+Unimpl()
 
 }
 
 func (t *Text) Fill() {
 
+Unimpl()
 }
 
 func (t *Text) Delete(q0, q1 uint, tofile bool) {
+Unimpl()
 
 }
 
@@ -279,81 +390,101 @@ func (t *Text) Constrain(q0, q1 uint, p0, p1 *uint) {
 }
 
 func (t *Text) ReadRune(q uint) rune {
+Unimpl()
 	return ' '
 }
 
 func (t *Text) BsWidth(c rune) int {
+Unimpl()
 	return 0
 }
 
 func (t *Text) FileWidth(q0 uint, oneelement int) int {
+Unimpl()
 	return 0
 }
 
 func (t *Text) Complete() []rune {
+Unimpl()
 	return nil
 }
 
 func (t *Text) Type(r rune) {
+Unimpl()
 
 }
 
 func (t *Text) Commit(tofile bool) {
+Unimpl()
 
 }
 
 func (t *Text) FrameScroll(dl int) {
+Unimpl()
 
 }
 
 func (t *Text) Select() {
+Unimpl()
 
 }
 
 func (t *Text) Show(q0, q1 uint, doselect bool) {
+Unimpl()
 
 }
 
 func (t *Text) SetSelect(q0, q1 uint) {
+Unimpl()
 
 }
 
 func (t *Text) Select23(q0, q1 *uint, high *draw.Image, mask int) int {
+Unimpl()
 	return 0
 }
 
 func (t *Text) Select3(q0, q1 *uint) int {
+Unimpl()
 	return 0
 }
 
 func (t *Text) DoubleClick(q0, q1 *uint) {
+Unimpl()
 
 }
 
 func (t *Text) ClickMatch(cl, cr, dir int, q *uint) int {
+Unimpl()
 	return 0
 }
 
 func (t *Text) ishtmlstart(q uint, q1 *uint) bool {
+Unimpl()
 	return false
 }
 
 func (t *Text) ishtmlend(q uint, q0 *uint) bool {
+Unimpl()
 	return false
 }
 
 func (t *Text) ClickHTMLMatch(q0, q1 *uint) int {
+Unimpl()
 	return 0
 }
 
 func (t *Text) BackNL(p, n uint) uint {
+Unimpl()
 	return 0
 }
 
 func (t *Text) SetOrigin(org uint, exact int) {
+Unimpl()
 
 }
 
 func (t *Text) Reset() {
+Unimpl()
 
 }
