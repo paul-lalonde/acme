@@ -120,7 +120,7 @@ func (w *Window) Init(clone *Window, r image.Rectangle) {
 		rf = rfget(false, false, false, clone.body.reffont.f.name);
 	} else {
 */	
-		f = NewFile("")
+		f = &File{}
 		rf = fontget(0, false, false, "");
 //	}
 	f = f.AddText(&w.body)
