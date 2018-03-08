@@ -20,6 +20,7 @@ func (f *Frame) bxscan(r []rune, ppt *image.Point) image.Point {
 	var c rune
 	
 	frame.Rect = f.Rect
+	frame.Display = f.Display
 	frame.Background = f.Background
 	frame.Font = f.Font
 	frame.MaxTab = f.MaxTab

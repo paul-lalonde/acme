@@ -202,7 +202,7 @@ func (t *Text) Columnate(names []string, widths []int) {
 				t.file.Insert(q1, Ltab)
 				q1++
 				w += maxt-(w%maxt)
-				if w < colw {
+				if !(w < colw) {
 					break
 				}
 			}
@@ -400,7 +400,8 @@ func runesplitN(buf []rune, sep rune, nl int) [][]rune {
 	lines := [][]rune{}
 	for i, r := range buf {
 		if r == sep {
-			lines = append(lines, buf[linestart:i])
+			line := append(buf[linestart:i], rune('\n'))
+			lines = append(lines, line)
 			linestart = i+1
 		}
 		if len(lines) >= nl {

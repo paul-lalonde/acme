@@ -3,8 +3,6 @@ package main
 import (
 	"image"
 	"sync"
-
-	"runtime"
 )
 
 type Row struct {
@@ -67,8 +65,6 @@ func (row *Row) Add(c *Column, x int) *Column {
 			return nil  // Refuse columns too narrow
 		}
 		display.ScreenImage.Draw(r, display.White, nil, image.ZP)
-runtime.Breakpoint()
-display.Flush()
 		r1 := r
 		r1.Max.X = min(x-display.ScaleSize(Border), r.Max.X-50)
 		if r1.Dx() < 50 {
@@ -78,15 +74,12 @@ display.Flush()
 		r1.Min.X = r1.Max.X
 		r1.Max.X = r1.Min.X + display.ScaleSize(Border)
 		display.ScreenImage.Draw(r1, display.Black, nil, image.ZP)
-runtime.Breakpoint()
-display.Flush()
 		r.Min.X = r1.Max.X
 	}
 	if c == nil {
 		c = &Column{}
 		c.Init(r)
 	} else {
-runtime.Breakpoint()
 		c.Resize(r)
 	}
 	c.row = row

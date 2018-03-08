@@ -210,7 +210,7 @@ type Expand struct {
 type Ref int
 
 func (r *Ref) Inc() {
-	*r++
+	*r++ 
 }
 
 func (r *Ref) Dec() {

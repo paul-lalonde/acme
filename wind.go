@@ -73,9 +73,6 @@ func (w *Window) Init(clone *Window, r image.Rectangle) {
 	//	var rp []rune
 	//	var nc int
 
-	bodyFile := NewFile("")
-	w.body.Init(bodyFile, r, tagfont, textcolors)
-
 	w.tag.w = w
 	w.taglines = 1
 	w.tagsafe = true
@@ -112,20 +109,23 @@ func (w *Window) Init(clone *Window, r image.Rectangle) {
 	if r1.Max.Y < r1.Min.Y {
 		r1.Max.Y = r1.Min.Y
 	}
+	
+	// Body setup.
+	f = nil
 /* TODO(flux): Unimplemented Clone
-	f = nil;
 	if clone {
 		f = clone.body.file;
 		w.body.org = clone.body.org;
 		w.isscratch = clone.isscratch;
 		rf = rfget(false, false, false, clone.body.reffont.f.name);
 	} else {
-*/
+*/	
+		f = NewFile("")
 		rf = fontget(0, false, false, "");
 //	}
 	f = f.AddText(&w.body)
-	w.body.what = Body
 	w.body.Init(f, r1, rf, textcolors)
+	w.body.what = Body
 	r1.Min.Y -= 1
 	r1.Max.Y = r1.Min.Y +1
 	display.ScreenImage.Draw(r1, tagcolors[frame.ColBord], nil, image.ZP)
